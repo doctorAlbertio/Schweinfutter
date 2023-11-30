@@ -1,0 +1,128 @@
+﻿@page "/"
+
+@using Microsoft.EntityFrameworkCore
+@using Schweinefutter.Data
+@using System.Globalization
+
+
+@inject IDbContextFactory<DataContext> DataContextFactory;
+
+<RadzenLayout>
+    <RadzenHeader>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0" Style="background-color: #bf6300">
+            <RadzenSidebarToggle Click="@(() => sidebar1Expanded = !sidebar1Expanded)"/>
+            <RadzenLabel Text="Schweine Fressmenge Prüfsoftware "/>
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="@sidebar1Expanded">
+       
+        <div class="rz-p-4">
+            <RadzenLabel Text="Suchfeld Schweine über Ohrmarke" For="searchfield" Style="margin-right: 1rem;"/>
+            
+            <!-- Autokomplementiert das Suchfeld mit den Ohrmarken aus der Tier Tabelle -->
+            <RadzenAutoComplete @bind-Value=@SearchString Data="@EarNames" Name="searchfield" Change="@CheckforPig"/>
+                
+            @if (@TheTiers != null && @TheTiers.Count > 0)
+            {
+                <div class="table-responsive">
+                    
+                    <!-- Hatte ein Error, wo der html Context nicht genug Ram hat,
+                    wenn man die Futterdatenbank komplett darstellen möchte.
+                    Darum fange ich ab, falls es zuviele Schweine gibt,
+                    der Wert kann bei Bedarf angepasst werden  -->
+                    @if (@TheTiers.Count() > @ListMaxCount)
+                    {
+                        <RadzenLabel Text="@("Liste zeigt nicht mehr als die ersten " + @ListMaxCount + " Einträge, bitte das Suchfeld nutzen")" For="searchfield" Style="margin-right: 1rem;"/>
+                    }
+
+                    <RadzenListBox TValue="string" @bind-Value=@SearchString Data="@EarNames.Take(100)" Change="CheckforPig"/>
+
+                </div>
+            }
+            else
+            {
+                <h1>Der Leftjoin hat nichts erzeugt</h1>
+            }
+            
+        </div>
+    </RadzenSidebar>
+    <RadzenBody>
+        <div class="rz-p-4">
+            @if (CurrentPig != null)
+            {
+                <div class="table-responsive">
+                    <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                        <table class="table table-striped table-hover table-bordered table-light border-dark">
+                            <thead>
+                            <tr>
+                                <th scope="col">Ohrmarke</th>
+                                <th scope="col">Geburtsdatum</th>
+                                <th scope="col">Einstalldatum</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <th scope="row">@SearchString</th>
+                                <td>@CurrentPig.Birthday.ToString(string.Format(DateFormat))</td>
+                                <td>@CurrentPig.InstallDate.ToString(string.Format(DateFormat))</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </RadzenCard>
+                </div>
+
+                <div class="container">
+                    <div class="column">
+                        <div class="col-sm-12 my-5">
+                            <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                                <RadzenCheckBox @bind-Value="@smooth" Name="smooth"></RadzenCheckBox>
+                                <RadzenLabel Text="weiche Kurve" For="smooth" Style="margin-right: 1rem;"/>
+                                <RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></RadzenCheckBox>
+                                <RadzenLabel Text="Zeige Werte" For="dataLabels"/>
+                            </RadzenCard>
+                            <RadzenChart>
+                                
+                                @if (PigMap.Any())
+                                {
+                                    @if (PigMap.ContainsKey(SearchString))
+                                    {
+                                        <RadzenLineSeries Smooth="@smooth" Data="@PigMap[SearchString].FeedArray" CategoryProperty="Date" Title="@SearchString" LineType="LineType.Solid" ValueProperty="FeedAmount" >
+                                            <RadzenMarkers MarkerType="MarkerType.Square"/>
+                                            <RadzenSeriesDataLabels Visible="@showDataLabels"/>
+                                            
+                                        </RadzenLineSeries>
+                                    }
+                                    else
+                                    {
+                                        <h2>Gesuchte Ohrmarke existiert nicht</h2>
+                                    }
+                                }
+                                else
+                                {
+                                    <h2>Die gesuchten Schweinedaten wurden nicht gefunden, prüft bitte die Datenbank Implementierung</h2>
+                                }
+                                
+                                <RadzenCategoryAxis Padding="20" Formatter="@FormatAsMonth"/>
+                                <RadzenLegend Visible="false"/>
+                                <RadzenValueAxis Min="0" Step="1000" Formatter="@FormatAsGram">
+                                    <RadzenGridLines Visible="true"/>
+                                    <RadzenAxisTitle Text="Futtermenge in Gramm"/>
+                                </RadzenValueAxis>
+                            </RadzenChart>
+                        </div>
+                    </div>
+                </div>
+            } 
+        </div>
+    </RadzenBody>
+    <RadzenFooter>
+        Geschrieben von Björn Christensen
+    </RadzenFooter>
+</RadzenLayout>
+
+
+@code {
+  
+   
+    
+}
